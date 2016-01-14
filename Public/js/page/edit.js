@@ -41,7 +41,9 @@ $(function() {
       imageUpload : true,
       imageFormats : ["jpg", "jpeg", "gif", "png", "bmp", "webp","JPG", "JPEG", "GIF", "PNG", "BMP", "WEBP"],
       imageUploadURL : "uploadImg",
-
+	  onload: function() {
+		this.addKeyMap(keyMap);
+	  }
   });
 
   /*插入API接口模板*/
@@ -56,7 +58,9 @@ $(function() {
   });
   
   /*保存*/
+  var saving = false;
   $("#save").click(function(){
+	  if (saving) return false;
     var page_id = $("#page_id").val();
     var item_id = $("#item_id").val();
     var cat_id = $("#cat_id").val();
@@ -64,22 +68,53 @@ $(function() {
     var page_content = $("#page_content").val();
     var item_id = $("#item_id").val();
     var order = $("#order").val();
-    $.post(
-      "save",
-      {"page_id":page_id ,"cat_id":cat_id ,"order":order ,"page_content":page_content,"page_title":page_title,"item_id":item_id },
-      function(data){
-          if (data.error_code == 0) {
-            alert("保存成功！");
-            window.location.href="../item/show?page_id="+data.data.page_id+"&item_id="+item_id;
-          }else{
-            alert("保存失败！");
 
-          }
-      },
-      'json'
-      )
-  })
+	saving = true;
+	$.ajax({
+		type: "POST",
+		url: 'save',
+		dataType: 'json',
+		data: {"page_id":page_id ,"cat_id":cat_id ,"order":order ,"page_content":page_content,"page_title":page_title,"item_id":item_id }
+	}).done(function(data) {
+		if (data.error_code == 0) {
+			$.bootstrapGrowl("保存成功！");
+			window.location.href="../item/show?page_id="+data.data.page_id+"&item_id="+item_id;
+		}else{
+			$.bootstrapGrowl("保存失败！", { type: 'danger' });
+		}
+	}).always(function() {
+		saving = false;
+	});
+  });
 
+
+  function isMobile(){
+    return navigator.userAgent.match(/iPhone|iPad|iPod|Android|android|BlackBerry|IEMobile/i) ? true : false; 
+  }
+
+	var keyMap = {
+		// 保存
+		"Ctrl-S": function() {
+			$("#save").click();
+		}
+	};
+	if (!isMobile()) initEditorOutsideKeys();
+	function initEditorOutsideKeys() {
+		if (!editormd) return ;
+		var $doc = $(document);
+		$.each(keyMap, function(key, fn) {
+			$doc.on('keydown', null, key.replace('-', '+'), function(e) {
+				e.preventDefault();
+				fn();
+			});
+		});
+	}
+	// 如果是新增页面，则光标为标题文本框
+	if (location.href.indexOf('type=new') !== -1) {
+		setTimeout(function() {
+			$('#page_title').focus();
+		}, 1000);
+	}
 
 });
 
